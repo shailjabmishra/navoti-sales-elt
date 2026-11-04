@@ -1,0 +1,24 @@
+# Template only. Copy to ~/.dbt/profiles.yml (C:\Users\<you>\.dbt\profiles.yml) and edit.
+# Never commit the real profiles.yml or any key file.
+navoti_sales:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: <account_locator>.<region>.<cloud>   # e.g. from your Snowsight URL
+      user: "{{ env_var('SNOWFLAKE_USER') }}"       # the LOGIN_NAME (DESC USER), often your e-mail
+
+      # Option A - key-pair (works with Google / SSO-less sign-in). See snowflake/04_dbt_keypair_auth.sql
+      private_key_path: "C:/Users/<you>/.dbt/rsa_key.p8"
+
+      # Option B - password
+      # password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+
+      # Option C - browser SSO (only if SAML SSO is configured on the account)
+      # authenticator: externalbrowser
+
+      role: ACCOUNTADMIN
+      warehouse: LAB_WH
+      database: NAVOTI_DB
+      schema: DBT
+      threads: 4

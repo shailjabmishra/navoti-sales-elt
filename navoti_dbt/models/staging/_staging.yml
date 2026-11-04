@@ -1,0 +1,18 @@
+version: 2
+models:
+  - name: stg_sales_task
+    columns:
+      - name: sales_task_id
+        data_tests: [unique, not_null]
+  - name: stg_office
+    columns:
+      - name: office_code2
+        data_tests: [unique, not_null]
+  - name: stg_bank
+    columns:
+      - name: bank_name
+        data_tests: [unique, not_null]
+  - name: stg_sales_person
+    columns:
+      - name: sales_person_email
+        data_tests: [unique, not_null]

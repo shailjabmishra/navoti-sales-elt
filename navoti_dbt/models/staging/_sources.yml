@@ -1,0 +1,12 @@
+version: 2
+sources:
+  - name: raw
+    database: NAVOTI_DB
+    schema: RAW
+    description: Tables loaded with COPY INTO from the Azure "raw" container.
+    tables:
+      - name: bank_master
+      - name: office_master
+      - name: product_master
+      - name: sales_person_master
+      - name: sales_task_transaction

@@ -1,0 +1,125 @@
+version: 2
+
+models:
+  # ---------------- dimensions from the master files ----------------
+  - name: dim_bank
+    description: Banks (BankMaster).
+    columns:
+      - name: bank_sk
+        data_tests: [unique, not_null]
+      - name: bank_name
+        data_tests: [unique, not_null]
+
+  - name: dim_office
+    description: Offices (OfficeMaster). Natural key is OfficeCode2; head office when OfficeCode1 = OfficeCode2.
+    columns:
+      - name: office_sk
+        data_tests: [unique, not_null]
+      - name: office_code2
+        data_tests: [unique, not_null]
+      - name: office_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Head office', 'Branch']
+
+  - name: dim_product
+    description: >
+      Products (ProductMaster), one row per ProductCode. The source repeats some codes;
+      is_ambiguous_code flags them and the lowest product_group_code row is kept.
+    columns:
+      - name: product_sk
+        data_tests: [unique, not_null]
+      - name: product_code
+        data_tests: [unique, not_null]
+
+  - name: dim_sales_person
+    description: Sales people (SalesPersonMaster), keyed on e-mail.
+    columns:
+      - name: sales_person_sk
+        data_tests: [unique, not_null]
+      - name: sales_person_email
+        data_tests: [unique, not_null]
+
+  # ---------------- dimensions derived from SALES_TASK_TRANSACTION ----------------
+  - name: dim_customer
+    description: Customers, derived from the transaction Customer column.
+    columns:
+      - name: customer_sk
+        data_tests: [unique, not_null]
+
+  - name: dim_channel
+    description: Sales channel and direction (Inbound / Outbound / NA), with a channel category.
+    columns:
+      - name: channel_sk
+        data_tests: [unique, not_null]
+
+  - name: dim_sales_status
+    description: Task state grouped into Won / Lost / Closed / In progress.
+    columns:
+      - name: sales_status_sk
+        data_tests: [unique, not_null]
+      - name: status_category
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['Won', 'Lost / Closed', 'In progress']
+
+  - name: dim_sales_result
+    description: Sales result / activity type of the task.
+    columns:
+      - name: sales_result_sk
+        data_tests: [unique, not_null]
+
+  - name: dim_engagement
+    description: Junk dimension combining ReachedStatus and Appointment.
+    columns:
+      - name: engagement_sk
+        data_tests: [unique, not_null]
+
+  - name: dim_date
+    description: Calendar dimension covering every year in the transaction dates.
+    columns:
+      - name: date_key
+        data_tests: [unique, not_null]
+
+  # ---------------- fact ----------------
+  - name: fct_sales_task
+    description: One row per sales task with measures and keys to every dimension.
+    columns:
+      - name: sales_task_id
+        data_tests: [unique, not_null]
+      - name: bank_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_bank'), field: bank_sk}}
+      - name: office_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_office'), field: office_sk}}
+      - name: product_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_product'), field: product_sk}}
+      - name: sales_person_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_sales_person'), field: sales_person_sk}}
+      - name: customer_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_customer'), field: customer_sk}}
+      - name: channel_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_channel'), field: channel_sk}}
+      - name: sales_status_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_sales_status'), field: sales_status_sk}}
+      - name: sales_result_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_sales_result'), field: sales_result_sk}}
+      - name: engagement_sk
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_engagement'), field: engagement_sk}}
+      - name: created_date_key
+        data_tests:
+          - not_null
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}
+      - name: closed_date_key
+        data_tests:
+          - relationships: {arguments: {to: ref('dim_date'), field: date_key}}

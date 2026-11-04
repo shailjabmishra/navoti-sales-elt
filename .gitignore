@@ -1,0 +1,21 @@
+# dbt generated
+target/
+dbt_packages/
+logs/
+**/target/
+**/logs/
+
+# credentials - never commit
+profiles.yml
+*.p8
+*.pem
+*.key
+.env
+
+# source data belongs to the data provider
+*.csv
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
