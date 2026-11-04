@@ -17,7 +17,7 @@ Azure Blob "raw"        Snowflake NAVOTI_DB                                     
 |---|---|
 | [`snowflake/`](snowflake) | Extract + Load: warehouse/database setup, external stage, RAW tables, `COPY INTO`, dbt key-pair auth |
 | [`navoti_dbt/`](navoti_dbt) | Transform: dbt project (staging views, 10 dimensions, 1 fact, tests, macros) |
-| `powerbi/` | Reporting (to be added) |
+| [`powerbi/`](powerbi) | Reporting: Power BI report `Navoti_Sales.pbix` (Import mode over `NAVOTI_DB.MARTS`) |
 
 ## 1. Extract + Load (Snowflake)
 
@@ -50,6 +50,26 @@ cd navoti_dbt
 dbt debug
 dbt build
 ```
+
+## 3. Report (Power BI)
+
+`powerbi/Navoti_Sales.pbix` connects to Snowflake as a dedicated read-only user (`PBI_USER`, role `PBI_READER`,
+`SELECT` on `NAVOTI_DB.MARTS` only) and imports the fact table and 10 dimensions.
+
+- **Model:** star schema, every dimension → `FCT_SALES_TASK` as one-to-many with single-direction filtering;
+  `DIM_DATE` marked as the date table (active relationship on `CREATED_DATE_KEY`); technical keys and audit columns hidden.
+- **Measures** (in `_Measures`): Total Tasks, Total Sales / Margin / Reward Amount, Avg Margin %, Won / Lost / Open / Closed Tasks,
+  Win Rate %, Won Sales Amount, Won Reward Amount, Appointment Rate %, Reach Rate %, Sales Amount PY, Sales YoY %.
+- **Pages:**
+
+| Page | Content |
+|---|---|
+| Overview | KPI cards, monthly sales trend, status split, sales by channel category and bank |
+| Sales Team | Sales by sales person, pipeline matrix (Won / Lost / In progress), scorecard with win rate |
+| Channels | Tasks by channel and direction, win rate by channel category, reached × appointment win-rate matrix |
+| Products & Offices | Sales by product group, top 10 products, head office vs branch, top 10 offices |
+
+Year and Bank slicers are synced across pages. Opening the file and refreshing requires your own Snowflake reporting user.
 
 ## Data quality findings
 

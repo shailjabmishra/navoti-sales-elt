@@ -15,6 +15,9 @@ profiles.yml
 # source data belongs to the data provider
 *.csv
 
+# the report lives in powerbi/; ignore working copies elsewhere
+/*.pbix
+
 # OS / editor
 .DS_Store
 Thumbs.db
