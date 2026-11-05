@@ -3,10 +3,18 @@ sources:
   - name: raw
     database: NAVOTI_DB
     schema: RAW
-    description: Tables loaded with COPY INTO from the Azure "raw" container.
+    description: >
+      Append-only tables loaded by NAVOTI_DB.RAW.LOAD_RAW() (task LOAD_RAW_TASK) from the Azure "raw" container.
+      Every row carries _file_name, _file_row_number, _file_last_modified and _loaded_at.
     tables:
       - name: bank_master
       - name: office_master
       - name: product_master
       - name: sales_person_master
       - name: sales_task_transaction
+        description: Sales tasks; new or changed files are appended by the incremental load.
+        config:
+          loaded_at_field: _loaded_at
+          freshness:
+            warn_after: {count: 2, period: day}
+            error_after: {count: 7, period: day}

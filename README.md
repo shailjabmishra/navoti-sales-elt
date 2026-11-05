@@ -51,6 +51,25 @@ dbt debug
 dbt build
 ```
 
+## Scheduled incremental pipeline
+
+| Step | Where | When | What is incremental |
+|---|---|---|---|
+| Load | Snowflake task `NAVOTI_DB.RAW.LOAD_RAW_TASK` → procedure `LOAD_RAW()` | daily 05:00 UTC | `COPY INTO` keeps load history, so only **new or changed files** are loaded. RAW is append-only with `_file_name`, `_file_last_modified`, `_loaded_at`. |
+| Transform | GitHub Actions [`elt_daily.yml`](.github/workflows/elt_daily.yml) | daily 05:30 UTC + manual | Staging keeps the latest version of each row; the fact processes only rows with `source_loaded_at` newer than its watermark, then `row_hash` sends only changed rows to the `MERGE`. Dimensions merge on `row_hash`. |
+| Quality gate | same job (`dbt build`) | after each transform | 52 tests; a failure fails the job. |
+| Report | Power BI semantic model | after the job | Scheduled refresh in the Power BI Service (requires a work account); manual refresh in Desktop otherwise. |
+
+Deploy the load objects once (from `navoti_dbt/`):
+
+```bash
+dbt run-operation rebuild_raw_tables   # one-time: recreate RAW with metadata columns (drops RAW data)
+dbt run-operation deploy_ingestion     # procedure LOAD_RAW + daily task LOAD_RAW_TASK (resumed)
+dbt run-operation load_raw             # first load / manual load
+```
+
+Limitations: rows deleted from a source file stay in MARTS (no soft-delete yet); the SAS token used by the stage expires and must be renewed (or replaced by a storage integration).
+
 ## 3. Report (Power BI)
 
 `powerbi/Navoti_Sales.pbix` connects to Snowflake as a dedicated read-only user (`PBI_USER`, role `PBI_READER`,

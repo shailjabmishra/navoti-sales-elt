@@ -22,3 +22,6 @@ profiles.yml
 .DS_Store
 Thumbs.db
 .vscode/
+
+# local Python environment
+.venv/

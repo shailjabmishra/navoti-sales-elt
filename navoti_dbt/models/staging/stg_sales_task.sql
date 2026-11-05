@@ -1,3 +1,16 @@
+{#-
+  RAW is append-only: a task can appear in several loaded files (or file versions).
+  Keep only its latest version: newest file modification time, then newest load, then last row.
+-#}
+with latest as (
+    select *
+    from {{ source('raw', 'sales_task_transaction') }}
+    qualify row_number() over (
+        partition by salestaskid
+        order by _file_last_modified desc, _loaded_at desc, _file_row_number desc
+    ) = 1
+)
+
 select
     salestaskid                 as sales_task_id,
     trim(bank)                  as bank_name,
@@ -20,5 +33,7 @@ select
     salesresultamount           as sales_result_amount,
     marginamount                as margin_amount,
     rewardamount                as reward_amount,
-    salestaskcount              as sales_task_count
-from {{ source('raw', 'sales_task_transaction') }}
+    salestaskcount              as sales_task_count,
+    _loaded_at                  as source_loaded_at,
+    _file_name                  as source_file_name
+from latest

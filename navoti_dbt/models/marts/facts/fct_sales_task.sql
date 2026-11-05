@@ -30,6 +30,8 @@ with src as (
         reward_amount,
         sales_task_count,
 
+        source_loaded_at,   -- when the row arrived in RAW; drives the incremental watermark
+
         {{ row_hash([
             'bank_name', 'office_code2', 'product_code', 'sales_person_email', 'customer_name',
             'channel', 'channel_direction', 'sales_state', 'sales_result', 'reached_status', 'appointment',
@@ -37,6 +39,13 @@ with src as (
             'margin_percentage', 'sales_result_amount', 'margin_amount', 'reward_amount', 'sales_task_count'
         ]) }}                                                      as row_hash
     from {{ ref('stg_sales_task') }}
+
+    {% if is_incremental() %}
+    -- 1) Watermark: only rows loaded into RAW after the newest row already in the fact
+    where source_loaded_at > (
+        select coalesce(max(source_loaded_at), '1900-01-01'::timestamp_ltz) from {{ this }}
+    )
+    {% endif %}
 )
 
 select
@@ -44,4 +53,5 @@ select
     current_timestamp() as dw_inserted_at,
     current_timestamp() as dw_updated_at
 from src
+-- 2) Change detection: of those, only rows that are new or whose values changed reach the MERGE
 {{ only_new_or_changed('sales_task_id') }}
