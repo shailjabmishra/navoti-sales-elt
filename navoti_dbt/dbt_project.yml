@@ -16,9 +16,7 @@ models:
       +materialized: view
     marts:
       +schema: marts
-      # Every dimension and fact is incremental and uses MERGE (no full reloads).
       +materialized: incremental
       +incremental_strategy: merge
       +on_schema_change: append_new_columns
-      # Keep the original insert timestamp when a row is updated by the MERGE.
       +merge_exclude_columns: ["dw_inserted_at"]

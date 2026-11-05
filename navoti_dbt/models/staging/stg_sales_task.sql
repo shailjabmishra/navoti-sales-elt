@@ -1,7 +1,3 @@
-{#-
-  RAW is append-only: a task can appear in several loaded files (or file versions).
-  Keep only its latest version: newest file modification time, then newest load, then last row.
--#}
 with latest as (
     select *
     from {{ source('raw', 'sales_task_transaction') }}

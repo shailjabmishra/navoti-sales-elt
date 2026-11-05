@@ -1,15 +1,9 @@
-# Daily incremental ELT: load new/changed files into RAW, then incremental dbt transform + tests.
-#
-# Required repository secrets (Settings -> Secrets and variables -> Actions):
-#   SNOWFLAKE_ACCOUNT      e.g. <locator>.<region>.<cloud>
-#   SNOWFLAKE_USER         the user's LOGIN_NAME (DESC USER)
-#   SNOWFLAKE_PRIVATE_KEY  full contents of rsa_key.p8 (including BEGIN/END lines)
 name: elt-daily
 
 on:
   schedule:
-    - cron: "30 5 * * *"     # 05:30 UTC, 30 min after Snowflake task LOAD_RAW_TASK (05:00 UTC)
-  workflow_dispatch: {}       # "Run workflow" button for manual runs
+    - cron: "30 5 * * *"
+  workflow_dispatch: {}
 
 concurrency:
   group: elt-daily
@@ -38,7 +32,7 @@ jobs:
       - name: Install dbt
         run: pip install "dbt-core>=1.10,<2.0" "dbt-snowflake>=1.10,<2.0"
 
-      - name: Write dbt profile (credentials come from secrets, never from the repo)
+      - name: Write dbt profile
         run: |
           mkdir -p "$DBT_PROFILES_DIR"
           cat > "$DBT_PROFILES_DIR/profiles.yml" <<'EOF'
@@ -60,8 +54,6 @@ jobs:
       - name: Check connection
         run: dbt debug
 
-      # 1) Incremental LOAD: COPY INTO skips files already loaded, so this is safe to repeat
-      #    even when the Snowflake task already ran.
       - name: Load new / changed files into RAW
         run: dbt run-operation load_raw
 
@@ -69,8 +61,6 @@ jobs:
         run: dbt source freshness
         continue-on-error: true
 
-      # 2) Incremental TRANSFORM: MERGE only new/changed rows, then run all tests.
-      #    A failing test fails the job, so bad data is flagged before anyone refreshes the report.
       - name: dbt build
         run: dbt build
 

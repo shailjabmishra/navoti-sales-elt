@@ -1,0 +1,61 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Pipeline funnel: all tasks -> closed -> won, with share of all tasks and step conversion. Fields: [Total Tasks], [Closed Tasks], [Won Tasks]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"fold": ["Total Tasks", "Closed Tasks", "Won Tasks"], "as": ["measure", "value"]},
+    {"calculate": "indexof(['Total Tasks', 'Closed Tasks', 'Won Tasks'], datum.measure)", "as": "step"},
+    {"calculate": "['All tasks', 'Closed', 'Won'][datum.step]", "as": "stage"},
+    {"joinaggregate": [{"op": "max", "field": "value", "as": "top"}]},
+    {"window": [{"op": "lag", "field": "value", "as": "prev"}], "sort": [{"field": "step"}]},
+    {"calculate": "-datum.value / 2", "as": "x_start"},
+    {"calculate": "datum.value / 2", "as": "x_end"},
+    {"calculate": "datum.value / datum.top", "as": "share"},
+    {"calculate": "datum.prev ? datum.value / datum.prev : null", "as": "step_conv"},
+    {"calculate": "format(datum.value, ',') + '  (' + format(datum.share, '.0%') + ')'", "as": "label"},
+    {"calculate": "datum.step_conv ? format(datum.step_conv, '.1%') + ' of previous step' : ''", "as": "conv_label"}
+  ],
+  "encoding": {
+    "y": {
+      "field": "stage", "type": "ordinal",
+      "sort": {"field": "step", "order": "ascending"},
+      "axis": {"title": null, "domain": false, "ticks": false, "labelColor": "#323130", "labelFontSize": 12, "labelFontWeight": "bold", "labelPadding": 10}
+    }
+  },
+  "layer": [
+    {
+      "mark": {"type": "bar", "cornerRadius": 4, "height": {"band": 0.7}},
+      "encoding": {
+        "x": {"field": "x_start", "type": "quantitative", "axis": null},
+        "x2": {"field": "x_end"},
+        "color": {"field": "step", "type": "ordinal", "scale": {"range": ["#85B7EB", "#378ADD", "#0C447C"]}, "legend": null},
+        "tooltip": [
+          {"field": "stage", "title": "Stage"},
+          {"field": "value", "title": "Tasks", "format": ","},
+          {"field": "share", "title": "Share of all tasks", "format": ".1%"},
+          {"field": "step_conv", "title": "Conversion from previous", "format": ".1%"}
+        ]
+      }
+    },
+    {
+      "mark": {"type": "text", "fontSize": 13, "fontWeight": "bold", "dy": -6},
+      "encoding": {
+        "x": {"datum": 0},
+        "text": {"field": "label"},
+        "color": {"condition": {"test": "datum.step === 0", "value": "#0C447C"}, "value": "white"}
+      }
+    },
+    {
+      "mark": {"type": "text", "fontSize": 11, "dy": 10},
+      "encoding": {
+        "x": {"datum": 0},
+        "text": {"field": "conv_label"},
+        "color": {"condition": {"test": "datum.step === 0", "value": "#0C447C"}, "value": "#E6F1FB"}
+      }
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+}

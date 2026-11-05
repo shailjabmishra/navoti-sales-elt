@@ -1,17 +1,3 @@
-{#-
-  INCREMENTAL LOADING (Azure Blob -> Snowflake RAW)
-
-  RAW tables are append-only and carry load metadata (_file_name, _file_row_number,
-  _file_last_modified, _loaded_at). COPY INTO keeps load history per table, so each run
-  loads only files that are NEW or CHANGED since the last load; unchanged files are skipped.
-  Staging then keeps the latest version of every row (see models/staging).
-
-  Commands:
-    dbt run-operation rebuild_raw_tables   one-time: recreate RAW with metadata columns (drops RAW data)
-    dbt run-operation deploy_ingestion     create/refresh the LOAD_RAW procedure and the daily task
-    dbt run-operation load_raw             run an incremental load now
--#}
-
 {% macro _raw_table_ddl(create) -%}
 {{ create }} NAVOTI_DB.RAW.BANK_MASTER (
   BANK VARCHAR, STATELOCATION VARCHAR,
@@ -40,14 +26,12 @@
   _FILE_NAME VARCHAR, _FILE_ROW_NUMBER NUMBER, _FILE_LAST_MODIFIED TIMESTAMP_NTZ, _LOADED_AT TIMESTAMP_LTZ);
 {%- endmacro %}
 
-
 {% macro rebuild_raw_tables() %}
   {% for stmt in _raw_table_ddl('CREATE OR REPLACE TABLE').split(';') if stmt | trim %}
     {% do run_query(stmt) %}
   {% endfor %}
   {{ log('RAW tables recreated with load-metadata columns. Run: dbt run-operation load_raw', info=True) }}
 {% endmacro %}
-
 
 {% macro deploy_ingestion(schedule='USING CRON 0 5 * * * UTC') %}
   {% for stmt in _raw_table_ddl('CREATE TABLE IF NOT EXISTS').split(';') if stmt | trim %}
@@ -65,8 +49,6 @@ EXECUTE AS OWNER
 AS
 $$
 BEGIN
-  -- Each COPY loads only files not loaded before (or changed since); PATTERN also picks up new files,
-  -- e.g. SalesTaskTransaction_2026_11.csv
   COPY INTO NAVOTI_DB.RAW.BANK_MASTER
     FROM (SELECT $1, $2, {{ meta }} FROM @NAVOTI_DB.RAW.RAW_STAGE)
     PATTERN = '.*BankMaster.*[.]csv' {{ opts }};
@@ -100,7 +82,6 @@ $$
   {% do run_query("ALTER TASK NAVOTI_DB.RAW.LOAD_RAW_TASK RESUME") %}
   {{ log('Deployed NAVOTI_DB.RAW.LOAD_RAW() and task LOAD_RAW_TASK (' ~ schedule ~ ', resumed).', info=True) }}
 {% endmacro %}
-
 
 {% macro load_raw() %}
   {% set res = run_query('CALL NAVOTI_DB.RAW.LOAD_RAW()') %}

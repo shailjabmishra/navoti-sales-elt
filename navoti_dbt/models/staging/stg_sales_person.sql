@@ -1,4 +1,3 @@
--- Latest version of each sales person, keyed on e-mail (RAW is append-only)
 select
     lower(trim(email))   as sales_person_email,
     trim(firstname)      as first_name,

@@ -1,6 +1,5 @@
 {{ config(unique_key='engagement_sk') }}
 
-{#- Junk dimension for the low-cardinality ReachedStatus / Appointment flags. -#}
 with src as (
     select distinct
         {{ surrogate_key(['reached_status', 'appointment']) }}  as engagement_sk,

@@ -1,4 +1,3 @@
--- Latest version of each bank across all loaded files (RAW is append-only)
 select
     trim(bank)           as bank_name,
     trim(statelocation)  as state_location

@@ -1,0 +1,313 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Deneb preview</title>
+<script src="https://cdn.jsdelivr.net/npm/vega@5.30.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@5.21.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6.26.0"></script>
+<style>body{font-family:Segoe UI,sans-serif;background:#fff;margin:16px}.box{width:620px;height:300px;border:1px solid #ddd;margin:0 0 8px}h3{margin:16px 0 4px;font-size:14px}pre{color:#b00;font-size:12px}</style></head><body>
+<h3>01 sales trend</h3><div id="v1" class="box"></div><pre id="e1"></pre>
+<h3>01b sales trend (columns)</h3><div id="v5" class="box"></div><pre id="e5"></pre>
+<h3>02 win rate dumbbell</h3><div id="v2" class="box" style="height:340px"></div><pre id="e2"></pre>
+<h3>03 heatmap</h3><div id="v3" class="box" style="height:360px"></div><pre id="e3"></pre>
+<h3>04 funnel</h3><div id="v4" class="box" style="height:240px"></div><pre id="e4"></pre>
+<script>
+const spec1 = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Monthly sales trend with the two highest months annotated. Fields: DIM_DATE[YEAR_MONTH], [Sales Amount (Trend)]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"calculate": "toDate(datum['YEAR_MONTH'] + '-01')", "as": "month"},
+    {"calculate": "datum['Sales Amount (Trend)']", "as": "sales"},
+    {"window": [{"op": "row_number", "as": "rank"}], "sort": [{"field": "sales", "order": "descending"}]},
+    {"calculate": "timeFormat(datum.month, '%b %Y') + '  ' + format(datum.sales, '.3s')", "as": "label"}
+  ],
+  "encoding": {
+    "x": {
+      "field": "month", "type": "temporal",
+      "axis": {"title": null, "format": "%Y", "tickCount": "year", "grid": false, "domainColor": "#C8C6C4", "labelColor": "#605E5C", "labelFontSize": 11}
+    },
+    "y": {
+      "field": "sales", "type": "quantitative",
+      "axis": {"title": null, "format": "~s", "tickCount": 4, "gridColor": "#EDEBE9", "domain": false, "ticks": false, "labelColor": "#605E5C", "labelFontSize": 11}
+    }
+  },
+  "layer": [
+    {"mark": {"type": "area", "color": "#2A78D6", "opacity": 0.12, "interpolate": "linear"}},
+    {"mark": {"type": "line", "color": "#2A78D6", "strokeWidth": 2, "interpolate": "linear", "strokeCap": "round"}},
+    {
+      "transform": [{"filter": "datum.rank <= 2"}],
+      "mark": {"type": "point", "filled": true, "size": 80, "color": "#EB6834", "stroke": "white", "strokeWidth": 2}
+    },
+    {
+      "transform": [{"filter": "datum.rank <= 2"}],
+      "mark": {"type": "text", "dy": -14, "fontSize": 11, "fontWeight": "bold", "color": "#B5431B"},
+      "encoding": {"text": {"field": "label"}}
+    },
+    {
+      "mark": {"type": "point", "size": 120, "opacity": 0},
+      "encoding": {
+        "tooltip": [
+          {"field": "month", "type": "temporal", "title": "Month", "format": "%B %Y"},
+          {"field": "sales", "type": "quantitative", "title": "Sales", "format": ",.0f"}
+        ]
+      }
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+};
+const spec2 = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Each sales person's win rate vs the team average. Fields: DIM_SALES_PERSON[FULL_NAME], [Win Rate %], [Win Rate % (Team)], [Won Tasks]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"calculate": "datum['Win Rate %']", "as": "wr"},
+    {"calculate": "datum['Win Rate % (Team)']", "as": "team"},
+    {"calculate": "datum.wr - datum.team", "as": "diff"},
+    {"calculate": "datum.diff >= 0 ? 'Above team average' : 'Below team average'", "as": "status"},
+    {"joinaggregate": [{"op": "min", "field": "wr", "as": "wr_min"}, {"op": "max", "field": "wr", "as": "wr_max"}]},
+    {"calculate": "(datum.wr_max - datum.wr_min) * 0.18 + 0.002", "as": "pad"}
+  ],
+  "encoding": {
+    "y": {
+      "field": "FULL_NAME", "type": "nominal",
+      "sort": {"field": "wr", "order": "descending"},
+      "axis": {"title": null, "domain": false, "ticks": false, "labelColor": "#323130", "labelFontSize": 12, "labelPadding": 8}
+    }
+  },
+  "layer": [
+    {
+      "mark": {"type": "rule", "strokeDash": [4, 4], "color": "#A19F9D"},
+      "encoding": {"x": {"aggregate": "mean", "field": "team", "type": "quantitative"}, "y": {}}
+    },
+    {
+      "mark": {"type": "text", "align": "left", "dx": 4, "dy": -6, "fontSize": 11, "color": "#605E5C"},
+      "encoding": {
+        "x": {"aggregate": "mean", "field": "team", "type": "quantitative"},
+        "y": {},
+        "text": {"value": "Team average"}
+      }
+    },
+    {
+      "mark": {"type": "rule", "strokeWidth": 3, "strokeCap": "round"},
+      "encoding": {
+        "x": {"field": "team", "type": "quantitative"},
+        "x2": {"field": "wr"},
+        "color": {"field": "status", "type": "nominal", "scale": {"domain": ["Above team average", "Below team average"], "range": ["#1BAF7A", "#E34948"]}, "legend": null}
+      }
+    },
+    {
+      "mark": {"type": "point", "filled": true, "size": 140, "stroke": "white", "strokeWidth": 2},
+      "encoding": {
+        "x": {
+          "field": "wr", "type": "quantitative",
+          "scale": {"zero": false, "nice": false},
+          "axis": {"title": null, "format": ".0%", "tickCount": 5, "gridColor": "#EDEBE9", "domain": false, "ticks": false, "labelColor": "#605E5C"}
+        },
+        "color": {"field": "status", "type": "nominal", "scale": {"domain": ["Above team average", "Below team average"], "range": ["#1BAF7A", "#E34948"]}, "legend": {"orient": "top", "title": null, "labelColor": "#605E5C"}},
+        "tooltip": [
+          {"field": "FULL_NAME", "title": "Sales person"},
+          {"field": "wr", "title": "Win rate", "format": ".1%"},
+          {"field": "team", "title": "Team average", "format": ".1%"},
+          {"field": "diff", "title": "Difference", "format": "+.1%"},
+          {"field": "Won Tasks", "title": "Won tasks", "format": ","}
+        ]
+      }
+    },
+    {
+      "transform": [{"filter": "datum.diff >= 0"}],
+      "mark": {"type": "text", "dx": 12, "align": "left", "fontSize": 11, "fontWeight": "bold", "color": "#0F7A55"},
+      "encoding": {
+        "x": {"field": "wr", "type": "quantitative"},
+        "text": {"field": "wr", "format": ".1%"}
+      }
+    },
+    {
+      "transform": [{"filter": "datum.diff < 0"}],
+      "mark": {"type": "text", "dx": -12, "align": "right", "fontSize": 11, "fontWeight": "bold", "color": "#B32D2C"},
+      "encoding": {
+        "x": {"field": "wr", "type": "quantitative"},
+        "text": {"field": "wr", "format": ".1%"}
+      }
+    },
+    {
+      "transform": [
+        {"calculate": "datum.wr_max + datum.pad", "as": "edge_hi"},
+        {"calculate": "datum.wr_min - datum.pad", "as": "edge_lo"}
+      ],
+      "mark": {"type": "rule", "opacity": 0},
+      "encoding": {"x": {"field": "edge_lo", "type": "quantitative"}, "x2": {"field": "edge_hi"}}
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+};
+const spec3 = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Win-rate heatmap: sales person x channel. Fields: DIM_SALES_PERSON[FULL_NAME], DIM_CHANNEL[CHANNEL], [Win Rate %], [Total Tasks]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"calculate": "datum['Win Rate %']", "as": "wr"},
+    {"joinaggregate": [{"op": "min", "field": "wr", "as": "wr_min"}, {"op": "max", "field": "wr", "as": "wr_max"}]},
+    {"calculate": "(datum.wr - datum.wr_min) / max(datum.wr_max - datum.wr_min, 0.0001)", "as": "wr_pos"}
+  ],
+  "encoding": {
+    "x": {
+      "field": "CHANNEL", "type": "nominal",
+      "axis": {"title": null, "orient": "top", "domain": false, "ticks": false, "labelAngle": 0, "labelColor": "#323130", "labelFontSize": 11, "labelPadding": 6}
+    },
+    "y": {
+      "field": "FULL_NAME", "type": "nominal",
+      "sort": {"op": "mean", "field": "wr", "order": "descending"},
+      "axis": {"title": null, "domain": false, "ticks": false, "labelColor": "#323130", "labelFontSize": 11, "labelPadding": 6}
+    }
+  },
+  "layer": [
+    {
+      "mark": {"type": "rect", "cornerRadius": 3, "stroke": "white", "strokeWidth": 2},
+      "encoding": {
+        "color": {
+          "field": "wr", "type": "quantitative",
+          "scale": {"scheme": "blues"},
+          "legend": {"title": "Win rate", "format": ".0%", "orient": "bottom", "gradientLength": 160, "labelColor": "#605E5C", "titleColor": "#605E5C"}
+        },
+        "tooltip": [
+          {"field": "FULL_NAME", "title": "Sales person"},
+          {"field": "CHANNEL", "title": "Channel"},
+          {"field": "wr", "title": "Win rate", "format": ".1%"},
+          {"field": "Total Tasks", "title": "Tasks", "format": ","}
+        ]
+      }
+    },
+    {
+      "mark": {"type": "text", "fontSize": 11},
+      "encoding": {
+        "text": {"field": "wr", "format": ".0%"},
+        "color": {"condition": {"test": "datum.wr_pos > 0.55", "value": "white"}, "value": "#252423"}
+      }
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+};
+const spec4 = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Pipeline funnel: all tasks -> closed -> won, with share of all tasks and step conversion. Fields: [Total Tasks], [Closed Tasks], [Won Tasks]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"fold": ["Total Tasks", "Closed Tasks", "Won Tasks"], "as": ["measure", "value"]},
+    {"calculate": "indexof(['Total Tasks', 'Closed Tasks', 'Won Tasks'], datum.measure)", "as": "step"},
+    {"calculate": "['All tasks', 'Closed', 'Won'][datum.step]", "as": "stage"},
+    {"joinaggregate": [{"op": "max", "field": "value", "as": "top"}]},
+    {"window": [{"op": "lag", "field": "value", "as": "prev"}], "sort": [{"field": "step"}]},
+    {"calculate": "-datum.value / 2", "as": "x_start"},
+    {"calculate": "datum.value / 2", "as": "x_end"},
+    {"calculate": "datum.value / datum.top", "as": "share"},
+    {"calculate": "datum.prev ? datum.value / datum.prev : null", "as": "step_conv"},
+    {"calculate": "format(datum.value, ',') + '  (' + format(datum.share, '.0%') + ')'", "as": "label"},
+    {"calculate": "datum.step_conv ? format(datum.step_conv, '.1%') + ' of previous step' : ''", "as": "conv_label"}
+  ],
+  "encoding": {
+    "y": {
+      "field": "stage", "type": "ordinal",
+      "sort": {"field": "step", "order": "ascending"},
+      "axis": {"title": null, "domain": false, "ticks": false, "labelColor": "#323130", "labelFontSize": 12, "labelFontWeight": "bold", "labelPadding": 10}
+    }
+  },
+  "layer": [
+    {
+      "mark": {"type": "bar", "cornerRadius": 4, "height": {"band": 0.7}},
+      "encoding": {
+        "x": {"field": "x_start", "type": "quantitative", "axis": null},
+        "x2": {"field": "x_end"},
+        "color": {"field": "step", "type": "ordinal", "scale": {"range": ["#85B7EB", "#378ADD", "#0C447C"]}, "legend": null},
+        "tooltip": [
+          {"field": "stage", "title": "Stage"},
+          {"field": "value", "title": "Tasks", "format": ","},
+          {"field": "share", "title": "Share of all tasks", "format": ".1%"},
+          {"field": "step_conv", "title": "Conversion from previous", "format": ".1%"}
+        ]
+      }
+    },
+    {
+      "mark": {"type": "text", "fontSize": 13, "fontWeight": "bold", "dy": -6},
+      "encoding": {
+        "x": {"datum": 0},
+        "text": {"field": "label"},
+        "color": {"condition": {"test": "datum.step === 0", "value": "#0C447C"}, "value": "white"}
+      }
+    },
+    {
+      "mark": {"type": "text", "fontSize": 11, "dy": 10},
+      "encoding": {
+        "x": {"datum": 0},
+        "text": {"field": "conv_label"},
+        "color": {"condition": {"test": "datum.step === 0", "value": "#0C447C"}, "value": "#E6F1FB"}
+      }
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+};
+const spec5 = {
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Monthly sales as columns, the two highest months highlighted and labelled. Fields: DIM_DATE[YEAR_MONTH], [Sales Amount (Trend)]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"calculate": "toDate(datum['YEAR_MONTH'] + '-01')", "as": "month"},
+    {"calculate": "datum['Sales Amount (Trend)']", "as": "sales"},
+    {"window": [{"op": "row_number", "as": "rank"}], "sort": [{"field": "sales", "order": "descending"}]},
+    {"calculate": "datum.rank <= 2 && datum.sales > 0", "as": "is_peak"},
+    {"calculate": "timeFormat(datum.month, '%b %Y') + '  ' + format(datum.sales, '.3s')", "as": "label"}
+  ],
+  "encoding": {
+    "x": {
+      "field": "month", "type": "temporal", "timeUnit": "yearmonth",
+      "bandPosition": 0.5,
+      "axis": {"title": null, "format": "%Y", "tickCount": "year", "grid": false, "domainColor": "#C8C6C4", "labelColor": "#605E5C", "labelFontSize": 11}
+    },
+    "y": {
+      "field": "sales", "type": "quantitative",
+      "axis": {"title": null, "format": "~s", "tickCount": 4, "gridColor": "#EDEBE9", "domain": false, "ticks": false, "labelColor": "#605E5C", "labelFontSize": 11}
+    }
+  },
+  "layer": [
+    {
+      "mark": {"type": "bar", "cornerRadiusTopLeft": 3, "cornerRadiusTopRight": 3, "width": {"band": 0.75}},
+      "encoding": {
+        "color": {
+          "condition": {"test": "datum.is_peak", "value": "#EB6834"},
+          "value": "#2A78D6"
+        },
+        "tooltip": [
+          {"field": "month", "type": "temporal", "timeUnit": "yearmonth", "title": "Month", "format": "%B %Y"},
+          {"field": "sales", "type": "quantitative", "title": "Sales", "format": ",.0f"}
+        ]
+      }
+    },
+    {
+      "transform": [{"filter": "datum.is_peak"}],
+      "mark": {"type": "text", "dy": -8, "fontSize": 11, "fontWeight": "bold", "color": "#B5431B", "baseline": "bottom"},
+      "encoding": {"text": {"field": "label"}}
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+}
+;
+const names=["Barry Johnson","David Bradley","Gail Erickson","Guy Gilbert","JoLynn Dobney","Kevin Brown","Rob Walters","Roberto Tamburello","Ruth Ellerbrock","Thierry D'Hers"];
+const wr=[.239,.231,.234,.235,.234,.225,.266,.235,.258,.241], won=[387,141,310,311,105,233,299,216,186,211];
+const d1=[];for(let y=2007;y<=2010;y++)for(let m=1;m<=12;m++){let v=(m===12&&(y===2007||y===2008))?1090000:150000+((y*7+m*13)%9)*45000;d1.push({YEAR_MONTH:y+"-"+String(m).padStart(2,"0"),"Sales Amount (Trend)":v});}
+const d2=names.map((n,i)=>({FULL_NAME:n,"Win Rate %":wr[i],"Win Rate % (Team)":.24,"Won Tasks":won[i]}));
+const ch=["Network","Phone","Letter","Headquarters","Partner","The system"];const d3=[];names.forEach((n,i)=>ch.forEach((c,j)=>d3.push({FULL_NAME:n,CHANNEL:c,"Win Rate %":.20+((i*5+j*3)%10)/100,"Total Tasks":100+i*10+j})));
+const d4=[{"Total Tasks":20480,"Closed Tasks":10000,"Won Tasks":2399}];
+[[spec1,d1],[spec2,d2],[spec3,d3],[spec4,d4],[spec5,d1]].forEach(([s,d],k)=>{s.data={values:d};vegaEmbed("#v"+(k+1),s,{actions:false}).then(r=>{const w=r.view.warnings?.()||[];document.getElementById("e"+(k+1)).textContent=w.length?("warnings: "+w.join("; ")):"";}).catch(e=>{document.getElementById("e"+(k+1)).textContent="ERROR: "+e.message;});});
+</script></body></html>

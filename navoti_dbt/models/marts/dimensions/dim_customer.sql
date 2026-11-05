@@ -1,6 +1,5 @@
 {{ config(unique_key='customer_sk') }}
 
-{#- Derived from SALES_TASK_TRANSACTION.Customer (no customer master was provided). -#}
 with src as (
     select distinct
         {{ surrogate_key(['customer_name']) }}  as customer_sk,

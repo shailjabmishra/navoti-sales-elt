@@ -1,0 +1,47 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Monthly sales as columns, the two highest months highlighted and labelled. Fields: DIM_DATE[YEAR_MONTH], [Sales Amount (Trend)]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"calculate": "toDate(datum['YEAR_MONTH'] + '-01')", "as": "month"},
+    {"calculate": "datum['Sales Amount (Trend)']", "as": "sales"},
+    {"window": [{"op": "row_number", "as": "rank"}], "sort": [{"field": "sales", "order": "descending"}]},
+    {"calculate": "datum.rank <= 2 && datum.sales > 0", "as": "is_peak"},
+    {"calculate": "timeFormat(datum.month, '%b %Y') + '  ' + format(datum.sales, '.3s')", "as": "label"}
+  ],
+  "encoding": {
+    "x": {
+      "field": "month", "type": "temporal", "timeUnit": "yearmonth",
+      "bandPosition": 0.5,
+      "axis": {"title": null, "format": "%Y", "tickCount": "year", "grid": false, "domainColor": "#C8C6C4", "labelColor": "#605E5C", "labelFontSize": 11}
+    },
+    "y": {
+      "field": "sales", "type": "quantitative",
+      "axis": {"title": null, "format": "~s", "tickCount": 4, "gridColor": "#EDEBE9", "domain": false, "ticks": false, "labelColor": "#605E5C", "labelFontSize": 11}
+    }
+  },
+  "layer": [
+    {
+      "mark": {"type": "bar", "cornerRadiusTopLeft": 3, "cornerRadiusTopRight": 3, "width": {"band": 0.75}},
+      "encoding": {
+        "color": {
+          "condition": {"test": "datum.is_peak", "value": "#EB6834"},
+          "value": "#2A78D6"
+        },
+        "tooltip": [
+          {"field": "month", "type": "temporal", "timeUnit": "yearmonth", "title": "Month", "format": "%B %Y"},
+          {"field": "sales", "type": "quantitative", "title": "Sales", "format": ",.0f"}
+        ]
+      }
+    },
+    {
+      "transform": [{"filter": "datum.is_peak"}],
+      "mark": {"type": "text", "dy": -8, "fontSize": 11, "fontWeight": "bold", "color": "#B5431B", "baseline": "bottom"},
+      "encoding": {"text": {"field": "label"}}
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+}

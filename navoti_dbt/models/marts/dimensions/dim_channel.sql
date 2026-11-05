@@ -1,6 +1,5 @@
 {{ config(unique_key='channel_sk') }}
 
-{#- Derived from Channel + ChannelDirection. -#}
 with src as (
     select distinct
         {{ surrogate_key(['channel', 'channel_direction']) }}  as channel_sk,

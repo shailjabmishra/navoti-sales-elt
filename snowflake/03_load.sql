@@ -1,7 +1,3 @@
--- =====================================================================
--- 03_load.sql : RAW tables + COPY INTO from the stage
--- =====================================================================
-
 USE WAREHOUSE LAB_WH;
 USE SCHEMA NAVOTI_DB.RAW;
 
@@ -11,14 +7,14 @@ CREATE OR REPLACE TABLE BANK_MASTER (
 );
 
 CREATE OR REPLACE TABLE OFFICE_MASTER (
-  OfficeCode1  NUMBER,     -- parent bank / head-office code
-  OfficeCode2  NUMBER,     -- individual office code (unique)
-  OfficeCode3  NUMBER,     -- OfficeCode1 || '9000'
+  OfficeCode1  NUMBER,
+  OfficeCode2  NUMBER,
+  OfficeCode3  NUMBER,
   OfficeName   VARCHAR
 );
 
 CREATE OR REPLACE TABLE PRODUCT_MASTER (
-  ProductCode       NUMBER,   -- NOTE: not unique in the source (12 codes repeat)
+  ProductCode       NUMBER,
   ProductName       VARCHAR,
   ProductGroupCode  VARCHAR,
   ProductGroup      VARCHAR
@@ -37,7 +33,7 @@ CREATE OR REPLACE TABLE SALES_TASK_TRANSACTION (
   OfficeCode1        NUMBER,
   OfficeCode2        NUMBER,
   OfficeCode3        NUMBER,
-  SalesPerson        VARCHAR,   -- e-mail, joins to SALES_PERSON_MASTER.EMail
+  SalesPerson        VARCHAR,
   ProductCode        NUMBER,
   Channel            VARCHAR,
   ChannelDirection   VARCHAR,
@@ -61,12 +57,10 @@ COPY INTO PRODUCT_MASTER         FROM @raw_stage/ProductMaster.csv         FILE_
 COPY INTO SALES_PERSON_MASTER    FROM @raw_stage/SalesPersonMaster.csv     FILE_FORMAT = (FORMAT_NAME = csv_load);
 COPY INTO SALES_TASK_TRANSACTION FROM @raw_stage/SalesTaskTransaction.csv  FILE_FORMAT = (FORMAT_NAME = csv_load);
 
--- Expected: 10 / 605 / 210 / 10 / 20480
 SELECT 'BANK_MASTER' AS table_name, COUNT(*) AS row_count FROM BANK_MASTER
 UNION ALL SELECT 'OFFICE_MASTER',          COUNT(*) FROM OFFICE_MASTER
 UNION ALL SELECT 'PRODUCT_MASTER',         COUNT(*) FROM PRODUCT_MASTER
 UNION ALL SELECT 'SALES_PERSON_MASTER',    COUNT(*) FROM SALES_PERSON_MASTER
 UNION ALL SELECT 'SALES_TASK_TRANSACTION', COUNT(*) FROM SALES_TASK_TRANSACTION;
 
--- Encoding check: should show ä / ö correctly
 SELECT OfficeName FROM OFFICE_MASTER LIMIT 5;

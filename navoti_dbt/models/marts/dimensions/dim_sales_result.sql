@@ -1,6 +1,5 @@
 {{ config(unique_key='sales_result_sk') }}
 
-{#- Derived from SalesResult (outcome / activity type of the task). -#}
 with src as (
     select distinct
         {{ surrogate_key(['sales_result']) }}  as sales_result_sk,

@@ -1,10 +1,5 @@
 {{ config(unique_key='product_sk') }}
 
-{#-
-  ProductMaster repeats some ProductCodes (e.g. 0, 1, 4, 6, 16) across product groups,
-  but transactions only carry ProductCode. Keep one deterministic row per code
-  (lowest group code, then name) and flag codes that were ambiguous in the source.
--#}
 with ranked as (
     select
         *,

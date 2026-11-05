@@ -1,6 +1,5 @@
 {{ config(unique_key='sales_status_sk') }}
 
-{#- Derived from State, grouped into a status category for pipeline reporting. -#}
 with src as (
     select distinct
         {{ surrogate_key(['sales_state']) }}  as sales_status_sk,

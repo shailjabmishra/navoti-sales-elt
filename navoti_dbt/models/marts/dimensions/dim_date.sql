@@ -1,6 +1,5 @@
 {{ config(unique_key='date_key') }}
 
-{#- Calendar for every year present in the transaction dates; new years merge in as data grows. -#}
 with bounds as (
     select
         date_trunc('year', min(least(sales_created_date, sales_start_date, sales_closed_date)))  as start_date,

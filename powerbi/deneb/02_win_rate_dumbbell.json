@@ -1,0 +1,88 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Each sales person's win rate vs the team average. Fields: DIM_SALES_PERSON[FULL_NAME], [Win Rate %], [Win Rate % (Team)], [Won Tasks]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"calculate": "datum['Win Rate %']", "as": "wr"},
+    {"calculate": "datum['Win Rate % (Team)']", "as": "team"},
+    {"calculate": "datum.wr - datum.team", "as": "diff"},
+    {"calculate": "datum.diff >= 0 ? 'Above team average' : 'Below team average'", "as": "status"},
+    {"joinaggregate": [{"op": "min", "field": "wr", "as": "wr_min"}, {"op": "max", "field": "wr", "as": "wr_max"}]},
+    {"calculate": "(datum.wr_max - datum.wr_min) * 0.18 + 0.002", "as": "pad"}
+  ],
+  "encoding": {
+    "y": {
+      "field": "FULL_NAME", "type": "nominal",
+      "sort": {"field": "wr", "order": "descending"},
+      "axis": {"title": null, "domain": false, "ticks": false, "labelColor": "#323130", "labelFontSize": 12, "labelPadding": 8}
+    }
+  },
+  "layer": [
+    {
+      "mark": {"type": "rule", "strokeDash": [4, 4], "color": "#A19F9D"},
+      "encoding": {"x": {"aggregate": "mean", "field": "team", "type": "quantitative"}, "y": {}}
+    },
+    {
+      "mark": {"type": "text", "align": "left", "dx": 4, "dy": -6, "fontSize": 11, "color": "#605E5C"},
+      "encoding": {
+        "x": {"aggregate": "mean", "field": "team", "type": "quantitative"},
+        "y": {},
+        "text": {"value": "Team average"}
+      }
+    },
+    {
+      "mark": {"type": "rule", "strokeWidth": 3, "strokeCap": "round"},
+      "encoding": {
+        "x": {"field": "team", "type": "quantitative"},
+        "x2": {"field": "wr"},
+        "color": {"field": "status", "type": "nominal", "scale": {"domain": ["Above team average", "Below team average"], "range": ["#1BAF7A", "#E34948"]}, "legend": null}
+      }
+    },
+    {
+      "mark": {"type": "point", "filled": true, "size": 140, "stroke": "white", "strokeWidth": 2},
+      "encoding": {
+        "x": {
+          "field": "wr", "type": "quantitative",
+          "scale": {"zero": false, "nice": false},
+          "axis": {"title": null, "format": ".0%", "tickCount": 5, "gridColor": "#EDEBE9", "domain": false, "ticks": false, "labelColor": "#605E5C"}
+        },
+        "color": {"field": "status", "type": "nominal", "scale": {"domain": ["Above team average", "Below team average"], "range": ["#1BAF7A", "#E34948"]}, "legend": {"orient": "top", "title": null, "labelColor": "#605E5C"}},
+        "tooltip": [
+          {"field": "FULL_NAME", "title": "Sales person"},
+          {"field": "wr", "title": "Win rate", "format": ".1%"},
+          {"field": "team", "title": "Team average", "format": ".1%"},
+          {"field": "diff", "title": "Difference", "format": "+.1%"},
+          {"field": "Won Tasks", "title": "Won tasks", "format": ","}
+        ]
+      }
+    },
+    {
+      "transform": [{"filter": "datum.diff >= 0"}],
+      "mark": {"type": "text", "dx": 12, "align": "left", "fontSize": 11, "fontWeight": "bold", "color": "#0F7A55"},
+      "encoding": {
+        "x": {"field": "wr", "type": "quantitative"},
+        "text": {"field": "wr", "format": ".1%"}
+      }
+    },
+    {
+      "transform": [{"filter": "datum.diff < 0"}],
+      "mark": {"type": "text", "dx": -12, "align": "right", "fontSize": 11, "fontWeight": "bold", "color": "#B32D2C"},
+      "encoding": {
+        "x": {"field": "wr", "type": "quantitative"},
+        "text": {"field": "wr", "format": ".1%"}
+      }
+    },
+    {
+      "transform": [
+        {"calculate": "datum.wr_max + datum.pad", "as": "edge_hi"},
+        {"calculate": "datum.wr_min - datum.pad", "as": "edge_lo"}
+      ],
+      "mark": {"type": "rule", "opacity": 0},
+      "encoding": {"x": {"field": "edge_lo", "type": "quantitative"}, "x2": {"field": "edge_hi"}}
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+}

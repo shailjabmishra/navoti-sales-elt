@@ -1,0 +1,50 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "description": "Win-rate heatmap: sales person x channel. Fields: DIM_SALES_PERSON[FULL_NAME], DIM_CHANNEL[CHANNEL], [Win Rate %], [Total Tasks]",
+  "data": {"name": "dataset"},
+  "width": "container",
+  "height": "container",
+  "autosize": {"type": "fit", "contains": "padding"},
+  "transform": [
+    {"calculate": "datum['Win Rate %']", "as": "wr"},
+    {"joinaggregate": [{"op": "min", "field": "wr", "as": "wr_min"}, {"op": "max", "field": "wr", "as": "wr_max"}]},
+    {"calculate": "(datum.wr - datum.wr_min) / max(datum.wr_max - datum.wr_min, 0.0001)", "as": "wr_pos"}
+  ],
+  "encoding": {
+    "x": {
+      "field": "CHANNEL", "type": "nominal",
+      "axis": {"title": null, "orient": "top", "domain": false, "ticks": false, "labelAngle": 0, "labelColor": "#323130", "labelFontSize": 11, "labelPadding": 6}
+    },
+    "y": {
+      "field": "FULL_NAME", "type": "nominal",
+      "sort": {"op": "mean", "field": "wr", "order": "descending"},
+      "axis": {"title": null, "domain": false, "ticks": false, "labelColor": "#323130", "labelFontSize": 11, "labelPadding": 6}
+    }
+  },
+  "layer": [
+    {
+      "mark": {"type": "rect", "cornerRadius": 3, "stroke": "white", "strokeWidth": 2},
+      "encoding": {
+        "color": {
+          "field": "wr", "type": "quantitative",
+          "scale": {"scheme": "blues"},
+          "legend": {"title": "Win rate", "format": ".0%", "orient": "bottom", "gradientLength": 160, "labelColor": "#605E5C", "titleColor": "#605E5C"}
+        },
+        "tooltip": [
+          {"field": "FULL_NAME", "title": "Sales person"},
+          {"field": "CHANNEL", "title": "Channel"},
+          {"field": "wr", "title": "Win rate", "format": ".1%"},
+          {"field": "Total Tasks", "title": "Tasks", "format": ","}
+        ]
+      }
+    },
+    {
+      "mark": {"type": "text", "fontSize": 11},
+      "encoding": {
+        "text": {"field": "wr", "format": ".0%"},
+        "color": {"condition": {"test": "datum.wr_pos > 0.55", "value": "white"}, "value": "#252423"}
+      }
+    }
+  ],
+  "config": {"view": {"stroke": null}, "font": "Segoe UI"}
+}
